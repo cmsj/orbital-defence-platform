@@ -16,6 +16,7 @@ This is a simple tool for remote execution. You send a message with Pushbullet, 
   * Add one or more commands to the configuration
  * Arrange for `odp.py` to be running on your machine, it will create a new device in your Pushbullet account called `ODP`
  * Send one of your pre-defined commands from a trusted source device, to your `ODP` device
+ * If you want to, you can choose a different name for the odp device, by adding an `odp_device_name` entry in the JSON configuration.
 
 ## Security
 Obviously there are huge potential risks in exposing a machine to a third party service, when command execution is involved.
