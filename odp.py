@@ -68,7 +68,7 @@ class ODP:
         try:
             self.pb_device = self.pb.get_device(self.config["odp_device_name"])
         except pushbullet.errors.InvalidKeyError:
-            self.pb_device = self.pb.new_device(DEFAULT_DEVICE_NAME)
+            self.pb_device = self.pb.new_device(self.config["odp_device_name"])
         self.logger.debug("Our device: %s" % self.pb_device)
 
         # Check if we're doing a one-shot action, or going into server mode
@@ -78,6 +78,7 @@ class ODP:
                 print("  %s: %s" % (device.nickname, device.device_iden))
             sys.exit(0)
 
+        # Add our polling function to the runloop
         self.scheduler.add_job(self.updatePushes,
                                trigger='interval',
                                seconds=self.options.polling_interval,
@@ -91,17 +92,21 @@ class ODP:
                 return device.nickname
 
     def updatePushes(self):
-        """Update our view of the world"""
+        """Poll Pushbullet and trigger processing of them"""
         self.logger.debug("Refreshing pushes...")
         our_pushes = [x for x in self.pb.get_pushes()
                       if x.get("target_device_iden",
                                None) == self.pb_device.device_iden and
                       x.get("source_device_iden",
                             None) in self.config["authorised_src_idens"]]
-        for push in our_pushes:
+        self.processPushes(our_pushes)
+
+    def processPushes(self, pushes):
+        """Process any push messages that have been found"""
+        for push in pushes:
             self.logger.debug("Found relevant push: %s" % push)
-            result = -1
             msg = ""
+            # Attempt execution of the defined command
             try:
                 result = self.executeCommand(push["body"]) \
                          and "Failed" or "Success"
@@ -112,13 +117,20 @@ class ODP:
                 msg = "Command '%s' exploded" % push["body"]
             src_name = self.deviceNameFromIden(push["source_device_iden"])
             src_device = self.pb.get_device(src_name)
+            # Send a reply back to the source of this push
             self.pb.push_note(msg, time.strftime("%c"), device=src_device)
+            # Delete the processed push
             self.logger.debug("Deleting.")
             self.pb.delete_push(push["iden"])
 
     def executeCommand(self, command):
         """Fish a command out of our config and execute it"""
-        exec_cmd = self.config["commands"][command]
+        try:
+            exec_cmd = self.config["commands"][command]
+        except KeyError:
+            self.logger.error("Command: '%s' not found" % command)
+            # Raise another exception so this failure bubbles up
+            raise ValueError
         self.logger.debug("Executing command: '%s':'%s'" % (
                           command, exec_cmd))
         return subprocess.call(exec_cmd.split(), shell=True)
