@@ -28,6 +28,9 @@ def parse_options(args=None):
     parser.add_argument('-s', '--show-devices', action='store_true',
                         dest='show_devices',
                         help='Show Pushbullet devices and exit', default=False)
+    parser.add_argument('-t', '--poll-interval', action='store', type=int,
+                        dest='polling_interval', default=30,
+                        help='Pushbullet polling interval, in seconds')
     options = parser.parse_args(args)
     return options
 
@@ -77,7 +80,7 @@ class ODP:
 
         self.scheduler.add_job(self.updatePushes,
                                trigger='interval',
-                               seconds=30,
+                               seconds=self.options.polling_interval,
                                next_run_time=datetime.datetime.now(),
                                max_instances=1)
 
