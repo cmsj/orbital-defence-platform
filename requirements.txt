@@ -1,0 +1,2 @@
+APScheduler==3.0.4
+pushbullet.py==0.10.0

@@ -1,0 +1,10 @@
+{
+  "commands": {
+    "Down": "sudo iptables -P INPUT ACCEPT",
+    "Up": "sudo iptables -P INPUT DROP"
+  },
+  "api_key": "YOUR_PUSHBULLET_API_KEY_HERE",
+  "authorised_src_idens": [
+    "IDENTITY_OF_SOURCE_DEVICE_TO_TRUST"
+  ]
+}
