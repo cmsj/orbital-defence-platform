@@ -133,7 +133,7 @@ class ODP:
             raise ValueError
         self.logger.debug("Executing command: '%s':'%s'" % (
                           command, exec_cmd))
-        return subprocess.call(exec_cmd.split(), shell=True)
+        return subprocess.call(exec_cmd.split(), shell=False)
 
 
 if __name__ == "__main__":  # pragma: no cover
