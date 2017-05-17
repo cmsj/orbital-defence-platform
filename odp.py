@@ -152,15 +152,13 @@ class ODP:
 
     def dockerStart(self, container):
         """Start a docker container"""
-        client = docker.DockerClient(base_url="unix://var/run/docker.sock")
-        container = client.get(container)
-        container.start()
+        client = docker.Client(base_url="unix://var/run/docker.sock")
+        client.start(container)
 
     def dockerStop(self, container):
         """Stop a docker container"""
-        client = docker.DockerClient(base_url="unix://var/run/docker.sock")
-        container = client.get(container)
-        container.start()
+        client = docker.Client(base_url="unix://var/run/docker.sock")
+        client.stop(container)
 
 
 if __name__ == "__main__":  # pragma: no cover
