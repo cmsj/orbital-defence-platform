@@ -3,6 +3,7 @@
 
 import argparse
 import datetime
+import docker
 import json
 import logging
 import os
@@ -139,9 +140,27 @@ class ODP:
             self.logger.error("Command: '%s' not found" % command)
             # Raise another exception so this failure bubbles up
             raise ValueError
-        self.logger.debug("Executing command: '%s':'%s'" % (
-                          command, exec_cmd))
-        return subprocess.call(exec_cmd.split(), shell=False)
+
+        if exec_cmd.starts_with("docker-start:"):
+            return self.dockerStart(exec_cmd[13:])
+        elif exec_cmd.starts_with("docker-stop:"):
+            return self.dockerStop(exec_cmd[12:])
+        else:
+            self.logger.debug("Executing command: '%s':'%s'" % (
+                              command, exec_cmd))
+            return subprocess.call(exec_cmd.split(), shell=False)
+
+    def dockerStart(self, container):
+        """Start a docker container"""
+        client = docker.DockerClient(base_url="unix://var/run/docker.sock")
+        container = client.get(container)
+        container.start()
+
+    def dockerStop(self, container):
+        """Stop a docker container"""
+        client = docker.DockerClient(base_url="unix://var/run/docker.sock")
+        container = client.get(container)
+        container.start()
 
 
 if __name__ == "__main__":  # pragma: no cover
