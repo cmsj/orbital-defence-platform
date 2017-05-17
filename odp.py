@@ -5,6 +5,7 @@ import argparse
 import datetime
 import json
 import logging
+import os
 import pushbullet
 import subprocess
 import sys
@@ -25,6 +26,10 @@ def parse_options(args=None):
                         help='Enable debugging', default=False)
     parser.add_argument('-c', '--config', action='store', dest='config',
                         help='Config file', default='/etc/odp.json')
+    parser.add_argument('-e', '--envconfig', action='store_true',
+                        dest='envconf',
+                        help='Load config from $ODP_CONFIG instead of a file',
+                        default=False)
     parser.add_argument('-s', '--show-devices', action='store_true',
                         dest='show_devices',
                         help='Show Pushbullet devices and exit', default=False)
@@ -54,10 +59,13 @@ class ODP:
         else:
             self.logger.setLevel(logging.INFO)
 
-        # Load our config file
-        with open(self.options.config, 'r') as config_file:
-            self.config = json.load(config_file)
-            self.logger.debug("Loaded config: %s" % self.config)
+        # Load our config
+        if self.options.envconf:
+            self.config = json.loads(os.getenv("ODP_CONFIG"))
+        else:
+            with open(self.options.config, 'r') as config_file:
+                self.config = json.load(config_file)
+                self.logger.debug("Loaded config: %s" % self.config)
 
         # Validate the config contains some minimally useful things
         if "odp_device_name" not in self.config:
