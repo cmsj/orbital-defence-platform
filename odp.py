@@ -2,7 +2,6 @@
 """Orbital Defence Platform v1.0 by Chris Jones <cmsj@tenshu.net>"""
 
 import argparse
-import datetime
 import docker
 import json
 import logging
@@ -11,8 +10,6 @@ import pushbullet
 import subprocess
 import sys
 import time
-
-from apscheduler.schedulers.blocking import BlockingScheduler
 
 
 DEFAULT_DEVICE_NAME = "ODP"
@@ -46,13 +43,12 @@ class ODP:
     logger = None
     options = None
     pb = None
+    pb_listener = None
     pb_device = None
-    scheduler = None
 
-    def __init__(self, options, scheduler):
+    def __init__(self, options):
         self.logger = logging.getLogger("ODP")
         self.options = options
-        self.scheduler = scheduler
 
         if self.options.debug:
             self.logger.setLevel(logging.DEBUG)
@@ -87,18 +83,27 @@ class ODP:
                 print("  %s: %s" % (device.nickname, device.device_iden))
             sys.exit(0)
 
-        # Add our polling function to the runloop
-        self.scheduler.add_job(self.updatePushes,
-                               trigger='interval',
-                               seconds=self.options.polling_interval,
-                               next_run_time=datetime.datetime.now(),
-                               max_instances=1)
+        # Create our listener
+        self.pb_listener = pushbullet.Listener(account=self.pb,
+                                               on_push=self.newEvent)
+
+        # Run the listener
+        try:
+            self.pb_listener.run_forever()
+        except KeyboardInterrupt:
+            self.pb_listener.close()
 
     def deviceNameFromIden(self, iden):
         """Figure out a device name from its iden"""
         for device in self.pb.devices:
             if iden == device.device_iden:
                 return device.nickname
+
+    def newEvent(self, event):
+        """Process an event from the Pushbullet listener"""
+        self.logger.debug("Received new listener event: %s" % event)
+        if event["type"] == "tickle" and event["subtype"] == "push":
+            self.updatePushes()
 
     def updatePushes(self):
         """Poll Pushbullet and trigger processing of them"""
@@ -112,6 +117,7 @@ class ODP:
 
     def processPushes(self, pushes):
         """Process any push messages that have been found"""
+        self.logger.debug("Found %d pushes" % len(pushes))
         for push in pushes:
             self.logger.debug("Found relevant push: %s" % push)
             msg = ""
@@ -163,11 +169,5 @@ class ODP:
 
 if __name__ == "__main__":  # pragma: no cover
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s')
-    scheduler = BlockingScheduler()
     options = parse_options()
-    odp = ODP(options, scheduler)
-
-    try:
-        scheduler.start()
-    except KeyboardInterrupt:
-        pass
+    odp = ODP(options)
