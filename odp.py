@@ -45,6 +45,7 @@ class ODP:
     pb = None
     pb_listener = None
     pb_device = None
+    time_cursor = None
 
     def __init__(self, options):
         self.logger = logging.getLogger("ODP")
@@ -55,6 +56,9 @@ class ODP:
             self.logger.debug("Command line options: %s" % self.options)
         else:
             self.logger.setLevel(logging.INFO)
+
+        # Set a timestamp for our time cursor \
+        self.time_cursor = time.time()
 
         # Load our config
         if self.options.envconf:
@@ -108,7 +112,15 @@ class ODP:
     def updatePushes(self):
         """Poll Pushbullet and trigger processing of them"""
         self.logger.debug("Refreshing pushes...")
-        our_pushes = [x for x in self.pb.get_pushes()
+        allPushes = self.pb.get_pushes(modified_after=self.time_cursor)
+        self.logger.debug("Found %d pushes in total" % len(allPushes))
+
+        # Update our time cursor to the latest one in our pushes
+        for push in allPushes:
+            self.time_cursor = max(self.time_cursor, push.get("created"))
+
+        # Find pushes specifically for ODP
+        our_pushes = [x for x in allPushes
                       if x.get("target_device_iden",
                                None) == self.pb_device.device_iden and
                       x.get("source_device_iden",
@@ -117,7 +129,7 @@ class ODP:
 
     def processPushes(self, pushes):
         """Process any push messages that have been found"""
-        self.logger.debug("Found %d pushes" % len(pushes))
+        self.logger.debug("Found %d pushes for ODP" % len(pushes))
         for push in pushes:
             self.logger.debug("Found relevant push: %s" % push)
             msg = ""
@@ -134,9 +146,6 @@ class ODP:
             src_device = self.pb.get_device(src_name)
             # Send a reply back to the source of this push
             self.pb.push_note(msg, time.strftime("%c"), device=src_device)
-            # Delete the processed push
-            self.logger.debug("Deleting.")
-            self.pb.delete_push(push["iden"])
 
     def executeCommand(self, command):
         """Fish a command out of our config and execute it"""
