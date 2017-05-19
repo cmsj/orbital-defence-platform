@@ -111,13 +111,13 @@ class ODP:
 
     def updatePushes(self):
         """Poll Pushbullet and trigger processing of them"""
-        self.logger.debug("Refreshing pushes...")
+        self.logger.debug("Refreshing pushes since %d..." % self.time_cursor)
         allPushes = self.pb.get_pushes(modified_after=self.time_cursor)
         self.logger.debug("Found %d pushes in total" % len(allPushes))
 
         # Update our time cursor to the latest one in our pushes
         for push in allPushes:
-            self.time_cursor = max(self.time_cursor, push.get("created"))
+            self.time_cursor = max(self.time_cursor, push.get("modified"))
 
         # Find pushes specifically for ODP
         our_pushes = [x for x in allPushes
