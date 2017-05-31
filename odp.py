@@ -136,9 +136,12 @@ class ODP:
             msg = ""
             # Attempt execution of the defined command
             try:
-                result = self.executeCommand(push["body"]) \
-                         and "Failed" or "Success"
-                msg = "Command: '%s'. Result: %s" % (push["body"], result)
+                (result, output) = self.executeCommand(push["body"])
+                msg = "Command: '%s'. Result: %s. Output: %s." % (push["body"],
+                                                                  result and
+                                                                  "Success" or
+                                                                  "Failed",
+                                                                  output)
             except:
                 self.logger.error("executeCommand failed for command: %s" %
                                   push["body"])
@@ -162,20 +165,41 @@ class ODP:
             return self.dockerStart(exec_cmd[13:])
         elif exec_cmd.startswith("docker-stop:"):
             return self.dockerStop(exec_cmd[12:])
+        elif exec_cmd.startswith("docker-status:"):
+            return self.dockerStatus(exec_cmd[14:])
         else:
             self.logger.debug("Executing command: '%s':'%s'" % (
                               command, exec_cmd))
-            return subprocess.call(exec_cmd.split(), shell=False)
+            return (subprocess.call(exec_cmd.split(), shell=False), "")
 
     def dockerStart(self, container):
         """Start a docker container"""
         client = docker.Client(base_url="unix://var/run/docker.sock")
         client.start(container)
+        isRunning = self.dockerIsRunning(container)
+        return (isRunning, isRunning and "Started" or "Stopped")
 
     def dockerStop(self, container):
         """Stop a docker container"""
         client = docker.Client(base_url="unix://var/run/docker.sock")
         client.stop(container)
+        isRunning = self.dockerIsRunning(container)
+        return (isRunning, isRunning and "Started" or "Stopped")
+
+    def dockerIsRunning(self, container):
+        """Determine if a container is running"""
+        client = docker.Client(base_url="unix://var/run/docker.sock")
+        # Get a list of running container names
+        containers = [item
+                      for sublist in [x['Names']
+                                      for x in client.containers()]
+                      for item in sublist]
+        return "/"+container in containers
+
+    def dockerStatus(self, container):
+        """Get the status of a docker container"""
+        state = self.dockerIsRunning(container)
+        return (state, state and "Running" or "Stopped")
 
 
 if __name__ == "__main__":  # pragma: no cover
