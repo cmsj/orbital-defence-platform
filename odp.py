@@ -10,6 +10,7 @@ import pushbullet
 import subprocess
 import sys
 import time
+import traceback
 
 
 DEFAULT_DEVICE_NAME = "ODP"
@@ -141,6 +142,7 @@ class ODP:
             except:
                 self.logger.error("executeCommand failed for command: %s" %
                                   push["body"])
+                self.logger.debug(traceback.format_exc())
                 msg = "Command '%s' exploded" % push["body"]
             src_name = self.deviceNameFromIden(push["source_device_iden"])
             src_device = self.pb.get_device(src_name)
