@@ -158,9 +158,9 @@ class ODP:
             # Raise another exception so this failure bubbles up
             raise ValueError
 
-        if exec_cmd.starts_with("docker-start:"):
+        if exec_cmd.startswith("docker-start:"):
             return self.dockerStart(exec_cmd[13:])
-        elif exec_cmd.starts_with("docker-stop:"):
+        elif exec_cmd.startswith("docker-stop:"):
             return self.dockerStop(exec_cmd[12:])
         else:
             self.logger.debug("Executing command: '%s':'%s'" % (
